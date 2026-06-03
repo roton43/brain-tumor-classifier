@@ -39,3 +39,6 @@ artifacts/*.pth
 artifacts/*.ckpt
 artifacts/*.safetensors
 !artifacts/class_names.json
+
+rendered/
+render.yml

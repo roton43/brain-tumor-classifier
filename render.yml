@@ -1,5 +1,4 @@
-# Render uses render.yaml by default. Select this file during Blueprint setup,
-# or rename it to render.yaml before connecting the repository.
+
 services:
   - type: web
     name: brain-tumor-classifier-api
