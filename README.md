@@ -11,7 +11,7 @@ MRI images into four categories:
 
 The project has two runtime parts:
 
-- `main.py`: FastAPI service that loads the fine-tuned ViT model and exposes
+- `main.py`: FastAPI service that loads the saved ViT model and exposes
   prediction endpoints.
 - `app.py`: Streamlit GUI that connects to the FastAPI URL, lets users upload
   an MRI image, previews the scan, and displays the predicted class with
@@ -47,12 +47,15 @@ Dataset source:
 brain-tumor-classifier/
 |-- app.py                    # Streamlit GUI client
 |-- main.py                   # FastAPI application
-|-- predictor.py              # Model loading, preprocessing, and inference
+|-- predictor.py              # Saved-model loading, preprocessing, and inference
+|-- model_store.py            # Model artifact helpers
+|-- prepare_model.py          # One-time .pt to .pkl conversion script
 |-- requirements.txt          # Python dependencies
 |-- submission.txt
 |-- artifacts/
 |   |-- class_names.json      # Class label mapping
-|   `-- vit_brain_tumor.pt    # Fine-tuned model weights, ignored by git
+|   |-- vit_brain_tumor.pt    # Fine-tuned model weights, ignored by git
+|   `-- vit_brain_tumor.pkl   # Prepared model loaded by FastAPI, ignored by git
 |-- training/
 |   `-- vit_finetuning.ipynb  # Training notebook
 |-- .gitignore
@@ -74,7 +77,22 @@ artifacts/vit_brain_tumor.pt
 ```
 
 `vit_brain_tumor.pt` is intentionally ignored by git because it is a large
-checkpoint file. Keep it in the `artifacts/` directory before running the API.
+checkpoint file. Keep it in the `artifacts/` directory, then prepare the saved
+model once:
+
+```bash
+python prepare_model.py
+```
+
+That command creates:
+
+```text
+artifacts/vit_brain_tumor.pkl
+```
+
+FastAPI loads `vit_brain_tumor.pkl` at startup and reuses that loaded model for
+prediction requests. It does not rebuild the ViT model from the `.pt` checkpoint
+inside the API.
 
 ## Run the FastAPI Model Service
 Start the backend first:
@@ -122,13 +140,18 @@ FASTAPI_URL=http://127.0.0.1:8000 streamlit run app.py
 This repository includes a Render Blueprint:
 
 ```text
-render.yml
+render.yaml
 ```
 
-Render uses `render.yaml` as its default Blueprint filename. During Blueprint
-setup, either select `render.yml` explicitly or rename it to `render.yaml`.
+Render uses `render.yaml` as its default Blueprint filename.
 
-The Blueprint deploys `main.py` as a Python web service with:
+The Blueprint prepares the saved model during build:
+
+```bash
+python prepare_model.py
+```
+
+Then it deploys `main.py` as a Python web service with:
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -141,8 +164,10 @@ git, provide a direct model download URL in Render when prompted for:
 MODEL_WEIGHTS_URL
 ```
 
-At startup, the API uses the local checkpoint if present. If it is missing, the
-API downloads it from `MODEL_WEIGHTS_URL` into `artifacts/vit_brain_tumor.pt`.
+During build, `prepare_model.py` uses the local checkpoint if present. If it is
+missing, the script downloads it from `MODEL_WEIGHTS_URL` into
+`artifacts/vit_brain_tumor.pt`, saves `artifacts/vit_brain_tumor.pkl`, and the
+API loads that `.pkl` file at startup.
 
 ## API Endpoints
 | Method | Endpoint | Input | Output |
@@ -185,8 +210,10 @@ with `uvicorn main:app --host 127.0.0.1 --port 8000`.
 If the Streamlit app shows the API as offline, make sure the FastAPI service is
 running on the same URL shown in the Streamlit sidebar.
 
-If model loading fails, confirm that `artifacts/vit_brain_tumor.pt` exists and
-that `artifacts/class_names.json` contains the four class names.
+If model loading fails, run `python prepare_model.py` and confirm that
+`artifacts/vit_brain_tumor.pkl` exists. If preparation fails, confirm that
+`artifacts/vit_brain_tumor.pt` exists and that `artifacts/class_names.json`
+contains the four class names.
 
 If the upload is rejected, use a JPEG or PNG file.
 
