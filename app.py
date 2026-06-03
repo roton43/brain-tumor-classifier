@@ -17,7 +17,7 @@ import streamlit as st
 from PIL import Image, UnidentifiedImageError
 
 
-DEFAULT_API_URL = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000")
+DEFAULT_API_URL = os.getenv("FASTAPI_URL", "https://brain-tumor-classifier-7jf5.onrender.com")
 REQUEST_TIMEOUT_SECONDS = 90
 
 CLASS_DETAILS = {

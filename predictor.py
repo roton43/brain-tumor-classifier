@@ -10,7 +10,9 @@ Artifacts required:
 
 import io
 import json
+import os
 from pathlib import Path
+from urllib.request import urlretrieve
 
 import torch
 from PIL import Image
@@ -25,6 +27,7 @@ except ImportError:  # Transformers 4.x
 BASE_DIR = Path(__file__).resolve().parent
 WEIGHTS_PATH = BASE_DIR / "artifacts" / "vit_brain_tumor.pt"
 CLASSES_PATH = BASE_DIR / "artifacts" / "class_names.json"
+MODEL_WEIGHTS_URL = os.getenv("MODEL_WEIGHTS_URL", "").strip()
 
 # ── Load class names ───────────────────────────────────────────────────────────
 with open(CLASSES_PATH, encoding="utf-8") as f:
@@ -65,6 +68,25 @@ config = ViTConfig(
 )
 
 model = ViTForImageClassification(config)
+
+
+def _ensure_weights_file(path: Path) -> None:
+    if path.exists():
+        return
+
+    if not MODEL_WEIGHTS_URL:
+        raise FileNotFoundError(
+            f"Model weights not found at {path}. Add the checkpoint locally or "
+            "set MODEL_WEIGHTS_URL to a direct download URL for deployment."
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"[predictor] Downloading model weights to {path}")
+    try:
+        urlretrieve(MODEL_WEIGHTS_URL, path)
+    except Exception as exc:
+        path.unlink(missing_ok=True)
+        raise RuntimeError("Failed to download model weights from MODEL_WEIGHTS_URL") from exc
 
 
 def _load_checkpoint(path: Path) -> dict:
@@ -116,6 +138,7 @@ def _remap_legacy_vit_keys(state_dict: dict, target_state_dict: dict) -> dict:
 
 
 # map_location='cpu' is mandatory because weights may have been saved on a GPU.
+_ensure_weights_file(WEIGHTS_PATH)
 state_dict = _load_checkpoint(WEIGHTS_PATH)
 state_dict = _remap_legacy_vit_keys(state_dict, model.state_dict())
 model.load_state_dict(state_dict)

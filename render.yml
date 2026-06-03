@@ -1,0 +1,18 @@
+# Render uses render.yaml by default. Select this file during Blueprint setup,
+# or rename it to render.yaml before connecting the repository.
+services:
+  - type: web
+    name: brain-tumor-classifier-api
+    runtime: python
+    plan: starter
+    region: oregon
+    numInstances: 1
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
+      - key: MODEL_WEIGHTS_URL
+        sync: false

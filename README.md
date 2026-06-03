@@ -114,6 +114,32 @@ To use a different backend, either edit the URL in the Streamlit sidebar or set
 FASTAPI_URL=http://127.0.0.1:8000 streamlit run app.py
 ```
 
+## Deploy the FastAPI API on Render
+This repository includes a Render Blueprint:
+
+```text
+render.yml
+```
+
+Render uses `render.yaml` as its default Blueprint filename. During Blueprint
+setup, either select `render.yml` explicitly or rename it to `render.yaml`.
+
+The Blueprint deploys `main.py` as a Python web service with:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Because `artifacts/vit_brain_tumor.pt` is a large checkpoint and is ignored by
+git, provide a direct model download URL in Render when prompted for:
+
+```text
+MODEL_WEIGHTS_URL
+```
+
+At startup, the API uses the local checkpoint if present. If it is missing, the
+API downloads it from `MODEL_WEIGHTS_URL` into `artifacts/vit_brain_tumor.pt`.
+
 ## API Endpoints
 | Method | Endpoint | Input | Output |
 |---|---|---|---|
