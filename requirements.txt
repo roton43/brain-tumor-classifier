@@ -1,0 +1,8 @@
+fastapi[standard]
+torch
+transformers
+pillow
+uvicorn
+python-multipart
+streamlit
+requests
