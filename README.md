@@ -45,18 +45,18 @@ Dataset source:
 ## Project Structure
 ```text
 brain-tumor-classifier/
-├── app.py                    # Streamlit GUI client
-├── main.py                   # FastAPI application
-├── predictor.py              # Model loading, preprocessing, and inference
-├── requirements.txt          # Python dependencies
-├── submission.txt
-├── artifacts/
-│   ├── class_names.json      # Class label mapping
-│   └── vit_brain_tumor.pt    # Fine-tuned model weights, ignored by git
-├── training/
-│   └── vit_finetuning.ipynb  # Training notebook
-├── .gitignore
-└── README.md
+|-- app.py                    # Streamlit GUI client
+|-- main.py                   # FastAPI application
+|-- predictor.py              # Model loading, preprocessing, and inference
+|-- requirements.txt          # Python dependencies
+|-- submission.txt
+|-- artifacts/
+|   |-- class_names.json      # Class label mapping
+|   `-- vit_brain_tumor.pt    # Fine-tuned model weights, ignored by git
+|-- training/
+|   `-- vit_finetuning.ipynb  # Training notebook
+|-- .gitignore
+`-- README.md
 ```
 
 ## Installation
