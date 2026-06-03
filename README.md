@@ -83,8 +83,12 @@ Start the backend first:
 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
+The FastAPI application lives in `main.py`, not `app.py`. Use `main:app` with
+Uvicorn; `app.py` is only the Streamlit GUI.
+
 Useful API URLs:
 
+- API root: `http://127.0.0.1:8000/`
 - Swagger docs: `http://127.0.0.1:8000/docs`
 - Health check: `http://127.0.0.1:8000/health`
 
@@ -143,6 +147,7 @@ API downloads it from `MODEL_WEIGHTS_URL` into `artifacts/vit_brain_tumor.pt`.
 ## API Endpoints
 | Method | Endpoint | Input | Output |
 |---|---|---|---|
+| GET | `/` | None | API status and useful endpoint paths |
 | GET | `/health` | None | Server status, model name, class list |
 | POST | `/predict` | JPEG or PNG image file as `file` | Predicted label and confidence |
 
@@ -170,6 +175,13 @@ curl -X POST "http://127.0.0.1:8000/predict" \
 ```
 
 ## Troubleshooting
+If `http://127.0.0.1:8000/` used to show `{"detail":"Not Found"}`, the API was
+running but no root route existed. Use `/docs` for the Swagger UI and `/health`
+for the health check.
+
+If Uvicorn says it cannot find the ASGI app, check that you started the backend
+with `uvicorn main:app --host 127.0.0.1 --port 8000`.
+
 If the Streamlit app shows the API as offline, make sure the FastAPI service is
 running on the same URL shown in the Streamlit sidebar.
 

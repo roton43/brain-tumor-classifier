@@ -17,7 +17,7 @@ Test via Swagger UI:
 """
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from PIL import UnidentifiedImageError
 from pydantic import BaseModel
 import predictor                          # loads model at import time
 
@@ -40,12 +40,32 @@ class HealthResponse(BaseModel):
     classes: list[str]
 
 
+class RootResponse(BaseModel):
+    status: str
+    message: str
+    endpoints: dict[str, str]
+
+
 class PredictionOutput(BaseModel):
     label: str
     confidence: float
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+@app.get("/", response_model=RootResponse, summary="API root")
+def root():
+    """Returns a small landing response so the base API URL is not a 404."""
+    return RootResponse(
+        status="ok",
+        message="Brain Tumor MRI Classifier API is running. Open /docs for Swagger UI.",
+        endpoints={
+            "docs": "/docs",
+            "health": "/health",
+            "predict": "POST /predict",
+        },
+    )
+
+
 @app.get("/health", response_model=HealthResponse, summary="Server health check")
 def health():
     """Returns server status, model name, and supported class labels."""
@@ -81,6 +101,8 @@ async def predict(file: UploadFile = File(..., description="Brain MRI image (JPE
 
     try:
         result = predictor.predict(image_bytes)
+    except (UnidentifiedImageError, OSError):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid image.")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Inference failed: {exc}")
 
