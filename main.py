@@ -1,27 +1,8 @@
-"""
-main.py
-FastAPI application for Brain Tumor MRI Classification.
-
-Endpoints:
-    GET  /health   - Server status and model info
-    POST /predict  - Upload an MRI image, receive label + confidence
-
-Run (development):
-    fastapi dev main.py
-
-Run (production):
-    fastapi run main.py
-
-Test via Swagger UI:
-    http://localhost:8000/docs
-"""
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from PIL import UnidentifiedImageError
 from pydantic import BaseModel
-import predictor                          # loads model at import time
+import predictor                         
 
-# ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Brain Tumor MRI Classifier",
     description=(
@@ -33,7 +14,6 @@ app = FastAPI(
 )
 
 
-# ── Pydantic schemas ───────────────────────────────────────────────────────────
 class HealthResponse(BaseModel):
     status: str
     model: str
@@ -51,7 +31,6 @@ class PredictionOutput(BaseModel):
     confidence: float
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
 @app.get("/", response_model=RootResponse, summary="API root")
 def root():
     """Returns a small landing response so the base API URL is not a 404."""
@@ -72,7 +51,7 @@ def health():
     return HealthResponse(
         status="ok",
         model="ViT fine-tuned on Brain Tumor MRI (google/vit-base-patch16-224)",
-        classes=predictor.CLASS_NAMES,
+        classes=predictor.get_class_names(),
     )
 
 
@@ -88,7 +67,6 @@ async def predict(file: UploadFile = File(..., description="Brain MRI image (JPE
     - **label**: one of `glioma`, `meningioma`, `notumor`, `pituitary`
     - **confidence**: softmax probability of the predicted class (0.0 – 1.0)
     """
-    # Validate content type
     if file.content_type not in ("image/jpeg", "image/png", "image/jpg"):
         raise HTTPException(
             status_code=415,
@@ -101,9 +79,14 @@ async def predict(file: UploadFile = File(..., description="Brain MRI image (JPE
 
     try:
         result = predictor.predict(image_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except (UnidentifiedImageError, OSError):
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid image.")
     except Exception as exc:
+        import traceback
+        print("[ERROR] Prediction failed:")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Inference failed: {exc}")
 
     return PredictionOutput(**result)

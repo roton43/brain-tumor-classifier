@@ -1,32 +1,21 @@
-"""
-Prepare the saved model artifact used by the FastAPI app.
-
-This script builds the ViT model from artifacts/vit_brain_tumor.pt once and
-saves it as artifacts/vit_brain_tumor.pkl. The API loads the .pkl file directly.
-"""
-
-from __future__ import annotations
-
-import argparse
-
-from model_store import MODEL_PICKLE_PATH, save_model_pickle
+import json
+from pathlib import Path
+from model_store import save_model_pickle, ARTIFACTS_DIR
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Create the pickled model artifact.")
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Rebuild the .pkl file even if it already exists.",
-    )
-    args = parser.parse_args()
+def prepare_artifacts():
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    if MODEL_PICKLE_PATH.exists() and not args.force:
-        print(f"[prepare_model] Saved model already exists: {MODEL_PICKLE_PATH}")
-        return
+    class_names = ["glioma", "meningioma", "notumor", "pituitary"]
+    classes_path = ARTIFACTS_DIR / "class_names.json"
+    
+    with open(classes_path, "w", encoding="utf-8") as f:
+        json.dump(class_names, f)
+    print(f"[prepare_model] Saved class names to {classes_path}")
 
-    save_model_pickle(MODEL_PICKLE_PATH)
+    save_model_pickle()
+    print("[prepare_model] All artifacts ready.")
 
 
 if __name__ == "__main__":
-    main()
+    prepare_artifacts()

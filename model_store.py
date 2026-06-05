@@ -1,10 +1,3 @@
-"""
-Model artifact helpers for the Brain Tumor MRI Classifier.
-
-Run prepare_model.py once to convert the trained .pt checkpoint into a pickled
-model artifact. The FastAPI app then loads only the .pkl file at startup.
-"""
-
 from __future__ import annotations
 
 import json
@@ -18,7 +11,7 @@ from transformers import ViTConfig, ViTForImageClassification
 
 try:
     from transformers import ViTImageProcessorPil as ViTImageProcessor
-except ImportError:  # Transformers 4.x
+except ImportError:  
     from transformers import ViTImageProcessor
 
 
@@ -30,11 +23,29 @@ CLASSES_PATH = ARTIFACTS_DIR / "class_names.json"
 MODEL_WEIGHTS_URL = os.getenv("MODEL_WEIGHTS_URL", "").strip()
 
 
-with open(CLASSES_PATH, encoding="utf-8") as f:
-    CLASS_NAMES: list[str] = json.load(f)
+_CLASS_NAMES: list[str] | None = None
 
-ID2LABEL = {idx: label for idx, label in enumerate(CLASS_NAMES)}
-LABEL2ID = {label: idx for idx, label in ID2LABEL.items()}
+
+def get_class_names() -> list[str]:
+    global _CLASS_NAMES
+    if _CLASS_NAMES is None:
+        if not CLASSES_PATH.exists():
+            raise FileNotFoundError(
+                f"class_names.json not found at {CLASSES_PATH}. "
+                "Run prepare_model.py first."
+            )
+        with open(CLASSES_PATH, encoding="utf-8") as f:
+            _CLASS_NAMES = json.load(f)
+    return _CLASS_NAMES
+
+
+def get_id2label() -> dict[int, str]:
+    names = get_class_names()
+    return {idx: label for idx, label in enumerate(names)}
+
+
+def get_label2id() -> dict[str, int]:
+    return {label: idx for idx, label in get_id2label().items()}
 
 
 def create_image_processor() -> ViTImageProcessor:
@@ -51,6 +62,8 @@ def create_image_processor() -> ViTImageProcessor:
 
 
 def create_model_config() -> ViTConfig:
+    id2label = get_id2label()
+    label2id = get_label2id()
     return ViTConfig(
         image_size=224,
         patch_size=16,
@@ -66,8 +79,8 @@ def create_model_config() -> ViTConfig:
         layer_norm_eps=1e-12,
         qkv_bias=True,
         encoder_stride=16,
-        id2label=ID2LABEL,
-        label2id=LABEL2ID,
+        id2label=id2label,
+        label2id=label2id,
     )
 
 

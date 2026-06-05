@@ -43,3 +43,7 @@ artifacts/*.pkl
 
 rendered/
 render.yml
+
+submission.zip
+*.docx
+*.pdf
